@@ -76,49 +76,52 @@ elif page == 'Team Focus':
     sides = ['red', 'blue']
 
     # Buttons
-    selected_team = st.sidebar.selectbox("Select Team", df['team'].unique())
+    selected_team = st.sidebar.selectbox("Select Team", ['None'] + df['team'].unique())
     selected_side = st.sidebar.multiselect("Select Side", sides)
 
-    # Apply filters for the team selected / side selected
-    filtered_df = df[df['team'] == selected_team]
-    if selected_side:
-        filtered_df = filtered_df[filtered_df['side'].isin(selected_side)]
-
-    # get list of nicknames & puuid of the selected ppl
-    list_nicknames = filtered_df['riot_id'].unique().tolist()
-    list_puuid = filtered_df['puuid'].unique().tolist()
-
-    # get rentability for player
-    df_dmg_gold_filtered = df_dmg_gold[df_dmg_gold['puuid'].isin(list_puuid)].reset_index(drop = True)
-    df_dmg_gold_filtered['riot_id'] = list_nicknames
-
-
-    roles = ['TOP','JUNGLE','MIDDLE','BOTTOM','UTILITY']
-
-    # Pick History
-    st.markdown('<h2 class="title">Pick History</h2>', unsafe_allow_html=True)
-
-    col1, col2, col3, col4, col5 = st.columns([5, 5, 5, 5, 5])
-    columns = [col1, col2, col3, col4, col5]
-    col_nb = 0
-    for role, col in zip(roles, columns):
-        role_df = filtered_df[filtered_df['team_position'] == role]
-        win_rates = role_df.groupby('champion')['win'].agg(['mean', 'size'])  # Aggregate mean and count
-        win_rates.columns = ['win_rate', 'nb_game']
-        win_rates['win_rate'] = (win_rates['win_rate'] * 100).round(2)
-        win_rates = win_rates.sort_values(by='nb_game', ascending=False)
-        with col:
-            st.write(f"##### {role[0] + role[1:].lower()}: {list_nicknames[col_nb]}")
-            st.write(win_rates)
-            col_nb += 1
-    st.markdown('</div>', unsafe_allow_html=True)
-
-    # Rentability section
-
-    st.markdown('<h2 class="title">Rentability</h2>', unsafe_allow_html=True)
-    st.write('Rentability for each player (Gold/Dmg per minute)')
-    st.write(df_dmg_gold_filtered[['riot_id', 'Dmg/Gold Ratio']])
-
- 
-    st.write(df)
+    if selected_team != 'None':
+        # Apply filters for the team selected / side selected
+        filtered_df = df[df['team'] == selected_team]
+        if selected_side:
+            filtered_df = filtered_df[filtered_df['side'].isin(selected_side)]
+    
+        # get list of nicknames & puuid of the selected ppl
+        list_nicknames = filtered_df['riot_id'].unique().tolist()
+        list_puuid = filtered_df['puuid'].unique().tolist()
+    
+        # get rentability for player
+        df_dmg_gold_filtered = df_dmg_gold[df_dmg_gold['puuid'].isin(list_puuid)].reset_index(drop = True)
+        df_dmg_gold_filtered['riot_id'] = list_nicknames
+    
+    
+        roles = ['TOP','JUNGLE','MIDDLE','BOTTOM','UTILITY']
+    
+        # Pick History
+        st.markdown('<h2 class="title">Pick History</h2>', unsafe_allow_html=True)
+    
+        col1, col2, col3, col4, col5 = st.columns([5, 5, 5, 5, 5])
+        columns = [col1, col2, col3, col4, col5]
+        col_nb = 0
+        for role, col in zip(roles, columns):
+            role_df = filtered_df[filtered_df['team_position'] == role]
+            win_rates = role_df.groupby('champion')['win'].agg(['mean', 'size'])  # Aggregate mean and count
+            win_rates.columns = ['win_rate', 'nb_game']
+            win_rates['win_rate'] = (win_rates['win_rate'] * 100).round(2)
+            win_rates = win_rates.sort_values(by='nb_game', ascending=False)
+            with col:
+                st.write(f"##### {role[0] + role[1:].lower()}: {list_nicknames[col_nb]}")
+                st.write(win_rates)
+                col_nb += 1
+        st.markdown('</div>', unsafe_allow_html=True)
+    
+        # Rentability section
+    
+        st.markdown('<h2 class="title">Rentability</h2>', unsafe_allow_html=True)
+        st.write('Rentability for each player (Gold/Dmg per minute)')
+        st.write(df_dmg_gold_filtered[['riot_id', 'Dmg/Gold Ratio']])
+    
+     
+        st.write(df)
+    else : 
+        st.write(' ## Choose a Team in the filter !')
 
