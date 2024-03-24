@@ -76,7 +76,7 @@ elif page == 'Team Focus':
     sides = ['red', 'blue']
 
     # Buttons
-    selected_team = st.sidebar.selectbox("Select Team", ['None'] + df['team'].unique())
+    selected_team = st.sidebar.selectbox("Select Team",[['None'] + df['team'].unique()])
     selected_side = st.sidebar.multiselect("Select Side", sides)
 
     if selected_team != 'None':
