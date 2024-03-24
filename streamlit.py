@@ -122,7 +122,6 @@ elif page == 'Team Focus':
         st.write(df_dmg_gold_filtered[['riot_id', 'Dmg/Gold Ratio']])
     
      
-        st.write(df)
     else : 
         st.write(' ## Choose a Team in the filter !')
 
