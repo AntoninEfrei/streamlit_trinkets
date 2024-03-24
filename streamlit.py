@@ -17,17 +17,12 @@ st.markdown(
 
 
 def load_data():
-    # Load your dataframe & champs icons
-    with open('nexus_tour/json/champion_icons.json', 'r') as json_file:
-        champion_icons_base64 = json.load(json_file)
-        champion_icons = {champion: base64.b64decode(icon) for champion, icon in champion_icons_base64.items()}
-
-    return pd.read_csv("nexus_tour/csv/nexustour_etape1_raw_data.csv"),champion_icons
+    return pd.read_csv("nexustour_etape1_raw_data.csv")
 
 
-df,champion_icons = load_data()
+df = load_data()
 
-df_dmg_gold = pd.read_csv('nexus_tour/csv/gold_dmg_ratio_etape1.csv')
+df_dmg_gold = pd.read_csv('gold_dmg_ratio_etape1.csv')
 df_dmg_gold.rename(columns={'avg':'Dmg/Gold Ratio'}, inplace = True)
 
 page = st.sidebar.radio("Navigation", ("Nexus Tour Reporting","Team Focus","Player focus"))
