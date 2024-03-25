@@ -120,7 +120,8 @@ elif page == 'Team Focus':
         st.markdown('<h2 class="title">Rentability</h2>', unsafe_allow_html=True)
         st.write('Rentability for each player (Gold/Dmg per minute)')
         st.write(df_dmg_gold_filtered[['riot_id', 'Dmg/Gold Ratio']])
-    
+
+        st.write(df)
      
     else : 
         st.write(' ## Choose a Team in the filter !')
