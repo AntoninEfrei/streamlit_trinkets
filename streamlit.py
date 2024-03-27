@@ -4,8 +4,9 @@ from PIL import Image
 from io import BytesIO
 import json
 import base64
-st.set_page_config(layout="wide")
 
+st.set_page_config(layout="wide")   
+pd.set_option("styler.render.max_elements", 484800)
 # Stylish header
 st.markdown(
     """
@@ -22,12 +23,23 @@ def load_data():
         champion_icons_base64 = json.load(json_file)
         champion_icons = {champion: base64.b64decode(icon) for champion, icon in champion_icons_base64.items()}
     '''
-    return pd.read_csv("nexustour_etape1_raw_data.csv")#,champion_icons
+    return pd.read_csv("nexus_tour/csv/nexustour_etape1_raw_data.csv")#,champion_icons
+
+def path_to_image_html(path): #crédit mascode 
+    '''
+     This function essentially convert the image url to 
+     '<img src="'+ path + '"/>' format. And one can put any
+     formatting adjustments to control the height, aspect ratio, size etc.
+     within as in the below example. 
+    '''
+
+    return '<img src="'+ path + '" style="max-height:50px;"/>'
+
 
 
 df = load_data()
 
-df_dmg_gold = pd.read_csv('gold_dmg_ratio_etape1.csv')
+df_dmg_gold = pd.read_csv('nexus_tour/csv/gold_dmg_ratio_etape1.csv')
 
 df_dmg_gold.rename(columns={'avg':'Dmg/Gold Ratio'}, inplace = True)
 
@@ -38,58 +50,83 @@ if page == "Player focus":
     # Filter options
     riot_ids = df['riot_id'].unique()
     sides = ['red', 'blue']
-
-    # Sidebar filters
+    # Sidebar filters 
     selected_riot_id = st.sidebar.selectbox("Select Riot ID", riot_ids)
     selected_side = st.sidebar.multiselect("Select Side", sides)
-
+    # filters
     puuid = df[df['riot_id'] == selected_riot_id]['puuid'].unique()
-    # Apply filters
     filtered_df = df[df['riot_id'] == selected_riot_id]
     if selected_side:
         filtered_df = filtered_df[filtered_df['side'].isin(selected_side)]
-   
+    
+    # Nickname displaying
+    st.write(f"# <div style='text-align: center;'>{selected_riot_id}</div>", unsafe_allow_html=True)
 
-    # get Xpdiff for player
+    # get Xpdiff for the select player
     avg_xpdiff = filtered_df.groupby('champion').agg({'xpdiff_at5': 'mean', 'xpdiff_at10': 'mean', 'xpdiff_at15': 'mean'}).reset_index()
 
-    # Group by 'champion' again to count the number of games
-    nb_game = filtered_df.groupby('champion').size().reset_index(name='nb_game')
-
-    # Merge the two DataFrames on 'champion' column
+    # Count nb of games and merge it 
+    nb_game = filtered_df.groupby('champion').size().reset_index(name='games')
     avg_xpdiff_by_champion = pd.merge(avg_xpdiff, nb_game, on='champion')
-    avg_xpdiff_by_champion.set_index('champion', inplace = True)
     avg_xpdiff_by_champion = avg_xpdiff_by_champion.round(1)
+
+    
     # Compute win rates
     win_rates = filtered_df.groupby('champion')['win'].agg(['mean', 'size'])  # Aggregate mean and count
-
-    win_rates.columns = ['win_rate', 'nb_game']
-    win_rates['win_rate'] = win_rates['win_rate']*100
-
-    st.subheader('Champions Played')
-    st.write(win_rates)
+    win_rates.columns = ['win_rate', 'games']
+    win_rates['win_rate'] = (win_rates['win_rate']*100).round(1)
+    win_rates.sort_values(by = 'games', ascending = False, inplace = True)
+    win_rates = win_rates.reset_index(drop = False)
     
-    st.write(avg_xpdiff_by_champion)
+    # get image links for each champion
+    win_rates = win_rates.reset_index(drop = False)
+    df_player = pd.merge(win_rates[['champion', 'win_rate']], avg_xpdiff_by_champion, on='champion')
+    df_player['Champ'] = "https://ddragon.leagueoflegends.com/cdn/14.5.1/img/champion/" + win_rates['champion'] + ".png"
+    df_player.drop(columns = ['champion'], inplace = True )     
+    columns = ['Champ'] + [col for col in df_player.columns if col != 'Champ']
+    df_player = df_player[columns]  
+    df_player = df_player.style.format({"Champ":path_to_image_html, "win_rate": lambda x: f"{x:.1f}", "xpdiff_at5": lambda x: f"{x:.1f}", "xpdiff_at10": lambda x: f"{x:.1f}", "xpdiff_at15": lambda x: f"{x:.1f}" })
+    df_player = df_player.hide(axis = 'index')  
+    df_player = df_player.to_html(index = False)
+
+    st.subheader('Player Focus on XP diff and W/R per champ')
+    st.markdown(df_player, unsafe_allow_html= True)
+   
 
 elif page == "Nexus Tour Reporting":
-
+   
+    # Sidebar filter
     available_dates = sorted(df['Date'].unique())
     selected_dates = st.sidebar.multiselect("Select Dates", available_dates, default=available_dates)
 
     # Create tabs for each role
     roles = ['TOP','JUNGLE','MIDDLE','BOTTOM','UTILITY']
-    col1, col2,col3,col4,col5 = st.columns([5,5,5,5,5])
+    
+    # display each role winrate on a column 
+    col1, col2,col3,col4,col5 = st.columns([7,7,7,7,7])
     columns = [col1,col2,col3,col4,col5]
     for role,col in zip(roles,columns):
         
+        #get the winrate for each player according to his role 
         role_df = df[(df['team_position'] == role) & (df['Date'].isin(selected_dates))]
         win_rates = role_df.groupby('champion')['win'].agg(['mean', 'size'])  # Aggregate mean and count
-        win_rates.columns = ['win_rate', 'nb_game']
-        win_rates['win_rate'] = (win_rates['win_rate'] * 100).round(1)
-        win_rates = win_rates.sort_values(by='nb_game', ascending = False)
+        win_rates.columns = ['W/R', 'games']
+        win_rates['W/R'] = (win_rates['W/R'] * 100).round(1)
+        win_rates = win_rates.sort_values(by='games', ascending = False)
+        
+        # display images 
+        win_rates = win_rates.reset_index(drop = False)
+        win_rates['Champ'] = "https://ddragon.leagueoflegends.com/cdn/14.5.1/img/champion/" + win_rates['champion'] + ".png"
+        win_rates.drop(columns=['champion'], inplace = True)
+        columns = ['Champ'] + [col for col in win_rates.columns if col != 'Champ']
+        win_rates = win_rates[columns]   
+        win_rates = win_rates.style.format({"Champ":path_to_image_html, "W/R": lambda x: f"{x:.1f}"})
+        win_rates = win_rates.hide(axis = "index")
+        win_rates = win_rates.to_html(escape = False)
+   
         with col:
            st.write(f"### {role} ")
-           st.write(win_rates)
+           st.markdown(win_rates, unsafe_allow_html= True)
 
 elif page == 'Team Focus':
     
@@ -127,40 +164,54 @@ elif page == 'Team Focus':
     avg_xpdiff_by_puuid = avg_xpdiff_by_puuid.sort_values('riot_id')
     avg_xpdiff_by_puuid['role'] = roles
     avg_xpdiff_by_puuid.set_index('role', inplace = True)
-    # Pick History
+    
+    
+    #display
     st.markdown('<h2 class="title">Pick History</h2>', unsafe_allow_html=True)
-
     col1, col2, col3, col4, col5 = st.columns([5, 5, 5, 5, 5])
     columns = [col1, col2, col3, col4, col5]
     col_nb = 0
     for role, col in zip(roles, columns):
+        
+        #get the  winrate for each role
         role_df = filtered_df[filtered_df['team_position'] == role]
         win_rates = role_df.groupby('champion')['win'].agg(['mean', 'size'])  # Aggregate mean and count
-        win_rates.columns = ['win_rate', 'nb_game']
-        win_rates['win_rate'] = (win_rates['win_rate'] * 100).round(2)
-        win_rates = win_rates.sort_values(by='nb_game', ascending=False)
+        win_rates.columns = ['W/R', 'games']
+        win_rates['W/R'] = (win_rates['W/R'] * 100).round(2)
+        win_rates = win_rates.sort_values(by='games', ascending=False)
+        
+        #display images
+        win_rates = win_rates.reset_index(drop = False)
+        win_rates['Champ'] = "https://ddragon.leagueoflegends.com/cdn/14.5.1/img/champion/" + win_rates['champion'] + ".png"
+        win_rates.drop(columns=['champion'], inplace = True)
+        columns = ['Champ'] + [col for col in win_rates.columns if col != 'Champ']
+        win_rates = win_rates[columns]   
+        win_rates = win_rates.style.format({"Champ":path_to_image_html, "W/R": lambda x: f"{x:.1f}"})
+        win_rates = win_rates.hide(axis = "index")
+        win_rates = win_rates.to_html(escape = False)
+        
         with col:
             st.write(f"##### {role[0] + role[1:].lower()}: {list_nicknames[col_nb]}")
-            st.write(win_rates)
+            st.markdown(win_rates, unsafe_allow_html= True)
             col_nb += 1
     st.markdown('</div>', unsafe_allow_html=True)
 
+
     col_tab1,col_tab2 = st.columns([2,2])
+    
     # Rentability section
     with col_tab1:
-        
         st.markdown('<h2 class="title">Rentability</h2>', unsafe_allow_html=True)
         st.write('Rentability for each player (Gold/Dmg per minute)')
         st.write(df_dmg_gold_filtered[['riot_id', 'Dmg/Gold Ratio']])
     
     # XP Diff 
-    with col_tab2:
-        
+    with col_tab2:  
         st.markdown('<h2 class="title">XP Diff </h2>', unsafe_allow_html=True)
         st.write('XP Management in lanes (average at 5/10/15 minutes)')   
         st.write(avg_xpdiff_by_puuid)
 
 
  
-    #st.write(df)
+
 
