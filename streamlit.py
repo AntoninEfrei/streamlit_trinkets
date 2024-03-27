@@ -48,8 +48,7 @@ if page == "Player focus":
     filtered_df = df[df['riot_id'] == selected_riot_id]
     if selected_side:
         filtered_df = filtered_df[filtered_df['side'].isin(selected_side)]
-    st.write(filtered_df)
-    
+   
 
     # get Xpdiff for player
     avg_xpdiff = filtered_df.groupby('champion').agg({'xpdiff_at5': 'mean', 'xpdiff_at10': 'mean', 'xpdiff_at15': 'mean'}).reset_index()
