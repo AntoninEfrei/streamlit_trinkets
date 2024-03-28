@@ -26,7 +26,7 @@ def load_data():
         champion_icons_base64 = json.load(json_file)
         champion_icons = {champion: base64.b64decode(icon) for champion, icon in champion_icons_base64.items()}
     '''
-    return pd.read_csv("nexus_tour/csv/nexustour_etape1_raw_data.csv")#,champion_icons
+    return pd.read_csv("nexustour_etape1_raw_data.csv")#,champion_icons
 
 def path_to_image_html(path): #crédit mascode 
     '''
@@ -58,12 +58,12 @@ def plot_positions_on_map(map_image, positions):
 
 df = load_data()
 
-with open('nexus_tour/json/dict_position_lvl1_red_etape1.json', "r") as file:
+with open('dict_position_lvl1_red_etape1.json', "r") as file:
     dict_position_red = json.load(file)
-with open('nexus_tour/json/dict_position_lvl1_blue_etape1.json', "r") as file:
+with open('dict_position_lvl1_blue_etape1.json', "r") as file:
     dict_position_blue = json.load(file)
     
-df_dmg_gold = pd.read_csv('nexus_tour/csv/gold_dmg_ratio_etape1.csv')
+df_dmg_gold = pd.read_csv('gold_dmg_ratio_etape1.csv')
 
 df_dmg_gold.rename(columns={'avg':'Dmg/Gold Ratio'}, inplace = True)
 
