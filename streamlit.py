@@ -4,13 +4,16 @@ from PIL import Image
 from io import BytesIO
 import json
 import base64
-
+import matplotlib.pyplot as plt 
+import numpy as np 
 st.set_page_config(layout="wide")   
 pd.set_option("styler.render.max_elements", 484800)
+
 # Stylish header
 st.markdown(
     """
     <h2 style='text-align: center; color: #f63366;'>Nexus Tour Reporting</h2>
+    <h4 style='text-align: center; color: #ffffff;'>LIGHT THEME RECOMMENDED</h4>
     <hr style='margin-bottom: 20px;'>
     """,
     unsafe_allow_html=True
@@ -23,7 +26,7 @@ def load_data():
         champion_icons_base64 = json.load(json_file)
         champion_icons = {champion: base64.b64decode(icon) for champion, icon in champion_icons_base64.items()}
     '''
-    return pd.read_csv("nexustour_etape1_raw_data.csv")#,champion_icons
+    return pd.read_csv("nexus_tour/csv/nexustour_etape1_raw_data.csv")#,champion_icons
 
 def path_to_image_html(path): #crédit mascode 
     '''
@@ -35,11 +38,32 @@ def path_to_image_html(path): #crédit mascode
 
     return '<img src="'+ path + '" style="max-height:50px;"/>'
 
+def plot_positions_on_map(map_image, positions):
 
+    # Plot the map image
+    fig, ax = plt.subplots()
+    ax.imshow(map_image)
+
+    # Extract x, y positions from the positions dictionary
+    for puuid, pos_list in positions.items():
+        x_values = [pos['x'] for pos in pos_list]
+        y_values = [pos['y'] for pos in pos_list]
+
+        # Plot the positions on the map
+        ax.scatter(x_values, y_values, label=puuid)
+
+
+
+    return fig
 
 df = load_data()
 
-df_dmg_gold = pd.read_csv('gold_dmg_ratio_etape1.csv')
+with open('nexus_tour/json/dict_position_lvl1_red_etape1.json', "r") as file:
+    dict_position_red = json.load(file)
+with open('nexus_tour/json/dict_position_lvl1_blue_etape1.json', "r") as file:
+    dict_position_blue = json.load(file)
+    
+df_dmg_gold = pd.read_csv('nexus_tour/csv/gold_dmg_ratio_etape1.csv')
 
 df_dmg_gold.rename(columns={'avg':'Dmg/Gold Ratio'}, inplace = True)
 
@@ -133,6 +157,7 @@ elif page == 'Team Focus':
     sides = ['red', 'blue']
     
     roles = ['TOP','JUNGLE','MIDDLE','BOTTOM','UTILITY']
+
     # Buttons
     selected_team = st.sidebar.selectbox("Select Team", df['team'].unique())
     selected_side = st.sidebar.multiselect("Select Side", sides)
@@ -142,9 +167,39 @@ elif page == 'Team Focus':
 
     if selected_side:
         filtered_df = filtered_df[filtered_df['side'].isin(selected_side)]
-
+    if not selected_side :
+        selected_side = sides        
+    if len(filtered_df['riot_id'])>5:
+        filtered_df = filtered_df[filtered_df['riot_id'] != 'DÉMON LIBÉRÉ'].reset_index(drop = True)
     # get list of nicknames & puuid of the selected ppl
     list_puuid = filtered_df['puuid'].unique().tolist()
+
+
+
+    #get the right position points for lvl 1 according to side 
+    if selected_side[0] == 'blue' and len(selected_side) == 1:
+
+        filtered_positions = {puuid: dict_position_blue[puuid] for puuid in list_puuid}
+        points_data = []
+        for key, value in filtered_positions.items():
+            points_data.extend(value)
+
+    elif selected_side[0] == 'red' and len(selected_side) == 1: 
+        filtered_positions = {puuid: dict_position_red[puuid] for puuid in list_puuid}
+        points_data = []
+        for key, value in filtered_positions.items():
+            points_data.extend(value)
+
+    else : 
+
+        filtered_positions_blue = {puuid: dict_position_blue[puuid] for puuid in list_puuid}
+        filtered_positions_red = {puuid: dict_position_red[puuid] for puuid in list_puuid}
+        points_data = []
+        for (key, value),(key_2,value2) in zip(filtered_positions_blue.items(),filtered_positions_red.items()):
+            points_data.extend(value)
+            points_data.extend(value2)
+        
+
 
     # get the most frequent team position to determine position of all players in the list nicknames
     most_frequent_positions = filtered_df.groupby('riot_id')['team_position'].agg(lambda x: x.value_counts().idxmax())
@@ -154,6 +209,7 @@ elif page == 'Team Focus':
     # get rentability for player
     df_dmg_gold_filtered = df_dmg_gold[df_dmg_gold['puuid'].isin(list_puuid)].reset_index(drop = True)
     df_dmg_gold_filtered['riot_id'] = list_nicknames
+   
     df_dmg_gold_filtered['role'] = roles
     df_dmg_gold_filtered.set_index('role', inplace = True)
 
@@ -171,6 +227,7 @@ elif page == 'Team Focus':
     col1, col2, col3, col4, col5 = st.columns([5, 5, 5, 5, 5])
     columns = [col1, col2, col3, col4, col5]
     col_nb = 0
+
     for role, col in zip(roles, columns):
         
         #get the  winrate for each role
@@ -199,18 +256,50 @@ elif page == 'Team Focus':
 
     col_tab1,col_tab2 = st.columns([2,2])
     
-    # Rentability section
-    with col_tab1:
+   
+    with col_tab2:
+
+         # Rentability section
         st.markdown('<h2 class="title">Rentability</h2>', unsafe_allow_html=True)
         st.write('Rentability for each player (Gold/Dmg per minute)')
         st.write(df_dmg_gold_filtered[['riot_id', 'Dmg/Gold Ratio']])
     
-    # XP Diff 
-    with col_tab2:  
+    
+    with col_tab1:  
+
+        # XP Diff 
         st.markdown('<h2 class="title">XP Diff </h2>', unsafe_allow_html=True)
         st.write('XP Management in lanes (average at 5/10/15 minutes)')   
         st.write(avg_xpdiff_by_puuid)
 
+
+        # MAP POSITION
+        map_image_path = 'nexus_tour/Image/summoners_rift.png'
+        map_image = plt.imread(map_image_path)
+
+        # Plot the image
+        fig, ax = plt.subplots(figsize = (5,5))
+        ax.imshow(map_image, extent=[0, 15000, 0, 15000])
+
+        # Plot the points on the image
+        for point in points_data:
+            ax.scatter(point['x'], point['y'], color='red')
+
+        # Set axis limits to match image dimensions
+        ax.set_xlim(0, 15000)
+        ax.set_ylim(0, 15000)
+        ax.axis('off')
+
+        # Show plot
+        st.subheader('LVL 1 MAP (position at 1 min)')
+        st.write("PICK ONLY ONE SIDE TO BE EFFICIENT - soon points will be coloured by the side ")
+        plot_column, _ = st.columns([1,1])  # Adjust the width ratio as needed
+        with plot_column:
+            st.pyplot(fig)
+
+
+
+  
 
  
 
