@@ -1,2 +1,2 @@
-matplotbil
+matplotlib
 streamlit
