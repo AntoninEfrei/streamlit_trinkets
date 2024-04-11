@@ -284,7 +284,7 @@ elif page == 'Team Focus':
 
 
         # MAP POSITION
-        map_image_path = 'nexus_tour/Image/summoners_rift.png'
+        map_image_path = 'summoners_rift.png'
         map_image = plt.imread(map_image_path)
 
         # Plot the image
