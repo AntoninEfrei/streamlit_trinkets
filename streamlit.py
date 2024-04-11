@@ -19,15 +19,6 @@ st.markdown(
     unsafe_allow_html=True
 )
 
-
-def load_data():
-    # Load your dataframe & champs icons
-    '''with open('nexus_tour/json/champion_icons.json', 'r') as json_file:
-        champion_icons_base64 = json.load(json_file)
-        champion_icons = {champion: base64.b64decode(icon) for champion, icon in champion_icons_base64.items()}
-    '''
-    return pd.read_csv("nexustour_etape1_raw_data.csv")#,champion_icons
-
 def path_to_image_html(path): #crédit mascode 
     '''
      This function essentially convert the image url to 
@@ -56,16 +47,26 @@ def plot_positions_on_map(map_image, positions):
 
     return fig
 
-df = load_data()
+df = pd.read_csv("nexus_tour/csv/nexustour_etape1_raw_data.csv")
+df_2 = pd.read_csv("nexus_tour/csv/nexustour_etape2_raw_data.csv")
 
-with open('dict_position_lvl1_red_etape1.json', "r") as file:
+# STEP 1 DATA 
+with open('nexus_tour/json/dict_position_lvl1_red_etape1.json', "r") as file:
     dict_position_red = json.load(file)
-with open('dict_position_lvl1_blue_etape1.json', "r") as file:
+with open('nexus_tour/json/dict_position_lvl1_blue_etape1.json', "r") as file:
     dict_position_blue = json.load(file)
     
-df_dmg_gold = pd.read_csv('gold_dmg_ratio_etape1.csv')
-
+df_dmg_gold = pd.read_csv('nexus_tour/csv/gold_dmg_ratio_etape1.csv')
 df_dmg_gold.rename(columns={'avg':'Dmg/Gold Ratio'}, inplace = True)
+
+# STEP 2 DATA
+with open('nexus_tour/json/dict_position_lvl1_red_etape2.json', "r") as file:
+    dict_position_red_2 = json.load(file)
+with open('nexus_tour/json/dict_position_lvl1_blue_etape2.json', "r") as file:
+    dict_position_blue_2 = json.load(file)
+    
+df_dmg_gold_2 = pd.read_csv('nexus_tour/csv/gold_dmg_ratio_etape1.csv')
+df_dmg_gold_2.rename(columns={'avg':'Dmg/Gold Ratio'}, inplace = True)
 
 page = st.sidebar.radio("Navigation", ("Nexus Tour Reporting","Team Focus","Player focus"))
 
@@ -115,13 +116,22 @@ if page == "Player focus":
 
     st.subheader('Player Focus on XP diff and W/R per champ')
     st.markdown(df_player, unsafe_allow_html= True)
-   
+    st.write(filtered_df['team'])
+  
 
 elif page == "Nexus Tour Reporting":
    
-    # Sidebar filter
-    available_dates = sorted(df['Date'].unique())
-    selected_dates = st.sidebar.multiselect("Select Dates", available_dates, default=available_dates)
+    #choose steps 
+    available_options = ['Step 1', 'Step 2 (GA)', 'All']
+    selected_option = st.sidebar.selectbox("Select Option", available_options)
+
+    if selected_option == 'Step 1':
+        df = df
+    elif selected_option == 'Step 2 (GA)':
+        df = df_2
+    else:  # selected_option == 'Both'
+        df = pd.concat([df, df_2], ignore_index=True)
+
 
     # Create tabs for each role
     roles = ['TOP','JUNGLE','MIDDLE','BOTTOM','UTILITY']
@@ -132,7 +142,7 @@ elif page == "Nexus Tour Reporting":
     for role,col in zip(roles,columns):
         
         #get the winrate for each player according to his role 
-        role_df = df[(df['team_position'] == role) & (df['Date'].isin(selected_dates))]
+        role_df = df[(df['team_position'] == role)]
         win_rates = role_df.groupby('champion')['win'].agg(['mean', 'size'])  # Aggregate mean and count
         win_rates.columns = ['W/R', 'games']
         win_rates['W/R'] = (win_rates['W/R'] * 100).round(1)
@@ -178,7 +188,7 @@ elif page == 'Team Focus':
 
     #get the right position points for lvl 1 according to side 
     if selected_side[0] == 'blue' and len(selected_side) == 1:
-
+        
         filtered_positions = {puuid: dict_position_blue[puuid] for puuid in list_puuid}
         points_data = []
         for key, value in filtered_positions.items():
@@ -274,7 +284,7 @@ elif page == 'Team Focus':
 
 
         # MAP POSITION
-        map_image_path = 'summoners_rift.png'
+        map_image_path = 'nexus_tour/Image/summoners_rift.png'
         map_image = plt.imread(map_image_path)
 
         # Plot the image
