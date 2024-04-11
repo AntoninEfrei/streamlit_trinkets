@@ -47,25 +47,25 @@ def plot_positions_on_map(map_image, positions):
 
     return fig
 
-df = pd.read_csv("nexus_tour/csv/nexustour_etape1_raw_data.csv")
-df_2 = pd.read_csv("nexus_tour/csv/nexustour_etape2_raw_data.csv")
+df = pd.read_csv("nexustour_etape1_raw_data.csv")
+df_2 = pd.read_csv("nexustour_etape2_raw_data.csv")
 
 # STEP 1 DATA 
-with open('nexus_tour/json/dict_position_lvl1_red_etape1.json', "r") as file:
+with open('dict_position_lvl1_red_etape1.json', "r") as file:
     dict_position_red = json.load(file)
-with open('nexus_tour/json/dict_position_lvl1_blue_etape1.json', "r") as file:
+with open('dict_position_lvl1_blue_etape1.json', "r") as file:
     dict_position_blue = json.load(file)
     
-df_dmg_gold = pd.read_csv('nexus_tour/csv/gold_dmg_ratio_etape1.csv')
+df_dmg_gold = pd.read_csv('gold_dmg_ratio_etape1.csv')
 df_dmg_gold.rename(columns={'avg':'Dmg/Gold Ratio'}, inplace = True)
 
 # STEP 2 DATA
-with open('nexus_tour/json/dict_position_lvl1_red_etape2.json', "r") as file:
+with open('dict_position_lvl1_red_etape2.json', "r") as file:
     dict_position_red_2 = json.load(file)
-with open('nexus_tour/json/dict_position_lvl1_blue_etape2.json', "r") as file:
+with open('dict_position_lvl1_blue_etape2.json', "r") as file:
     dict_position_blue_2 = json.load(file)
     
-df_dmg_gold_2 = pd.read_csv('nexus_tour/csv/gold_dmg_ratio_etape1.csv')
+df_dmg_gold_2 = pd.read_csv('gold_dmg_ratio_etape1.csv')
 df_dmg_gold_2.rename(columns={'avg':'Dmg/Gold Ratio'}, inplace = True)
 
 page = st.sidebar.radio("Navigation", ("Nexus Tour Reporting","Team Focus","Player focus"))
