@@ -208,6 +208,7 @@ elif page == 'Team Focus':
         for (key, value),(key_2,value2) in zip(filtered_positions_blue.items(),filtered_positions_red.items()):
             points_data.extend(value)
             points_data.extend(value2)
+    st.write(points_data)
         
 
 
